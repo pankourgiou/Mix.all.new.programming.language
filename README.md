@@ -1,0 +1,1 @@
+Download the .html and double click it and there you go!a full working programming language Restricted-->canvas oriented(kinda works like a small programming canvas)for certain(mostly educational)purposes. It's playful also. Experiment with it and enjoy!
