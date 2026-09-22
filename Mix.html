@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>.mix — sphere/cube canvas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-0:#070912;
+    --bg-1:#0c0f1c;
+    --panel:#10142400;
+    --line: rgba(160,180,255,0.14);
+    --line-strong: rgba(160,180,255,0.32);
+    --cyan:#6ee7d8;
+    --violet:#b39bff;
+    --amber:#ffb677;
+    --red-glow:#ff7a7a;
+    --text-0:#eef1fb;
+    --text-1:#a9b0c9;
+    --text-2:#6b7290;
+    font-family: 'Space Grotesk', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    min-height:100%;
+    background:
+      radial-gradient(ellipse 900px 500px at 15% -10%, rgba(110,231,216,0.08), transparent 60%),
+      radial-gradient(ellipse 800px 600px at 110% 10%, rgba(179,155,255,0.10), transparent 60%),
+      var(--bg-0);
+    color: var(--text-0);
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap{
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 28px 20px 56px;
+  }
+  header{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 26px;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 18px;
+  }
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:14px;
+  }
+  .brand .mark{
+    width: 40px; height:40px;
+    position:relative;
+    flex-shrink:0;
+  }
+  .brand .mark svg{ width:100%; height:100%; display:block; }
+  .brand h1{
+    margin:0;
+    font-size: 22px;
+    font-weight:700;
+    letter-spacing: 0.01em;
+  }
+  .brand h1 .ext{
+    color: var(--cyan);
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:600;
+    font-size: 15px;
+    margin-left:8px;
+    opacity:0.85;
+  }
+  .tagline{
+    color: var(--text-1);
+    font-size: 13.5px;
+    max-width: 360px;
+    line-height:1.5;
+    text-align:right;
+  }
+  main{
+    display:grid;
+    grid-template-columns: 300px 1fr;
+    gap: 22px;
+    align-items:start;
+  }
+  @media (max-width: 860px){
+    main{ grid-template-columns: 1fr; }
+  }
+
+  /* ---------- CUBE PANEL (symbol palette) ---------- */
+  .cube-panel{
+    position:relative;
+    border: 1px solid var(--line);
+    padding: 20px 18px 22px;
+    background: linear-gradient(180deg, rgba(179,155,255,0.05), rgba(179,155,255,0.01));
+  }
+  .cube-panel::before, .cube-panel::after,
+  .corner-tl, .corner-br{
+    content:'';
+    position:absolute;
+    width:14px; height:14px;
+    border: 1.5px solid var(--violet);
+    opacity:0.7;
+  }
+  .cube-panel::before{ top:-1px; left:-1px; border-right:none; border-bottom:none; }
+  .cube-panel::after{ bottom:-1px; right:-1px; border-left:none; border-top:none; }
+
+  .panel-label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--violet);
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom: 4px;
+  }
+  .panel-label .dot{ width:6px;height:6px;background:var(--violet);border-radius:1px;transform:rotate(45deg);}
+  .panel-sub{
+    color: var(--text-2);
+    font-size: 12.5px;
+    line-height:1.5;
+    margin-bottom: 16px;
+  }
+
+  .shape-grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .shape-btn{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    padding: 14px 6px 10px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--line);
+    cursor:pointer;
+    color: var(--text-1);
+    transition: border-color .15s ease, background .15s ease, transform .1s ease;
+    user-select:none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .shape-btn:hover{ border-color: var(--line-strong); background: rgba(255,255,255,0.045); }
+  .shape-btn:active{ transform: scale(0.96); }
+  .shape-btn svg{ width:30px; height:30px; display:block; }
+  .shape-btn .lbl{ font-size:10.5px; font-family:'IBM Plex Mono', monospace; letter-spacing:0.03em; text-align:center; line-height:1.35; }
+  .shape-btn.pos svg{ filter: drop-shadow(0 0 6px rgba(110,231,216,0.35)); }
+  .shape-btn.neg svg{ filter: drop-shadow(0 0 6px rgba(255,122,122,0.25)); }
+  .shape-btn.loop svg{ filter: drop-shadow(0 0 6px rgba(255,182,119,0.35)); }
+  .shape-btn.io svg{ filter: drop-shadow(0 0 8px rgba(110,231,216,0.5)); }
+
+  .loop-count{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    margin-top:14px;
+    padding-top:14px;
+    border-top: 1px dashed var(--line);
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--text-1);
+  }
+  .loop-count .stepper{
+    display:flex; align-items:center; gap:0;
+    border:1px solid var(--line);
+  }
+  .loop-count button{
+    width:22px; height:22px;
+    background:transparent;
+    border:none;
+    color: var(--amber);
+    cursor:pointer;
+    font-size:14px;
+    line-height:1;
+  }
+  .loop-count button:hover{ background: rgba(255,182,119,0.1); }
+  .loop-count .n{
+    width:26px; text-align:center;
+    color: var(--text-0);
+    font-weight:600;
+  }
+
+  .sliders-block{
+    margin-top:16px;
+    padding-top:14px;
+    border-top: 1px dashed var(--line);
+  }
+  .slider-row{
+    margin-bottom: 13px;
+  }
+  .slider-row label{
+    display:flex;
+    justify-content:space-between;
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-1);
+    margin-bottom: 6px;
+  }
+  .slider-row label span{ color: var(--cyan); font-weight:600; }
+  .slider-row input[type="range"]{
+    width:100%;
+    accent-color: var(--cyan);
+    height: 18px;
+    cursor:pointer;
+    background:transparent;
+  }
+
+  .fn-note{
+    margin-top:16px;
+    padding-top:14px;
+    border-top: 1px dashed var(--line);
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    color: var(--text-2);
+    line-height:1.7;
+  }
+  .fn-note b{ color: var(--text-1); font-weight:600; }
+
+  /* ---------- SPHERE PANEL (program canvas) ---------- */
+  .sphere-panel{
+    position:relative;
+    border: 1px solid var(--line);
+    background: radial-gradient(circle at 50% 0%, rgba(110,231,216,0.07), transparent 55%), rgba(255,255,255,0.015);
+    padding: 22px 22px 20px;
+    overflow:hidden;
+  }
+  .sphere-panel::before{
+    content:'';
+    position:absolute;
+    top:-140px; right:-140px;
+    width:320px; height:320px;
+    border-radius:50%;
+    border: 1px solid rgba(110,231,216,0.18);
+  }
+  .sphere-panel::after{
+    content:'';
+    position:absolute;
+    top:-90px; right:-90px;
+    width:220px; height:220px;
+    border-radius:50%;
+    border: 1px solid rgba(110,231,216,0.1);
+  }
+
+  .state-row{
+    display:flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+  .stat{
+    border:1px solid var(--line);
+    padding: 10px 14px;
+    min-width: 108px;
+    background: rgba(255,255,255,0.02);
+  }
+  .stat .k{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--text-2);
+    letter-spacing:0.08em;
+    margin-bottom:4px;
+  }
+  .stat .v{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 17px;
+    font-weight:600;
+    color: var(--text-0);
+  }
+
+  .energy-block{
+    position:relative;
+    border: 1px solid var(--line-strong);
+    padding: 22px 22px 20px;
+    margin-bottom: 20px;
+    background: linear-gradient(180deg, rgba(255,182,119,0.06), transparent 70%);
+  }
+  .energy-block .eq{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--text-2);
+    margin-bottom: 10px;
+    letter-spacing: 0.01em;
+  }
+  .energy-block .big{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: clamp(28px, 5vw, 42px);
+    font-weight:600;
+    color: var(--amber);
+    line-height:1.1;
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .energy-block .raw{
+    font-size: 12.5px;
+    color: var(--text-2);
+    font-weight:400;
+  }
+  .clamp-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    margin-top:10px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing:0.08em;
+    color: var(--red-glow);
+    border: 1px solid rgba(255,122,122,0.35);
+    padding: 4px 9px;
+    opacity:0;
+    transform: translateY(-2px);
+    transition: opacity .2s ease, transform .2s ease;
+  }
+  .clamp-badge.show{ opacity:1; transform: translateY(0); }
+  .range-hint{
+    margin-top:12px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--text-2);
+  }
+  .range-track{
+    position:relative;
+    flex:1;
+    height:3px;
+    background: rgba(255,255,255,0.08);
+  }
+  .range-track .zero-tick{
+    position:absolute; top:-4px;
+    width:1px; height:11px;
+    background: var(--line-strong);
+    transition: left .35s cubic-bezier(.2,.8,.2,1);
+  }
+  .range-track .zero-tick::after{
+    content:'0';
+    position:absolute;
+    top:10px; left:50%;
+    transform: translateX(-50%);
+    font-size:9px;
+    color: var(--text-2);
+  }
+  .range-track .fill{
+    position:absolute; top:-4.5px;
+    width:10px; height:10px;
+    margin-left:-5px;
+    background: var(--amber);
+    border-radius:50%;
+    box-shadow: 0 0 10px rgba(255,182,119,0.85), 0 0 0 3px rgba(255,182,119,0.15);
+    transition: left .35s cubic-bezier(.2,.8,.2,1);
+    left:0;
+  }
+
+  .run-btn{
+    display:block;
+    width:100%;
+    padding: 14px 20px;
+    margin-bottom: 20px;
+    background: linear-gradient(180deg, rgba(110,231,216,0.16), rgba(110,231,216,0.06));
+    border: 1px solid var(--cyan);
+    color: var(--cyan);
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight:600;
+    letter-spacing: 0.14em;
+    cursor:pointer;
+    transition: background .15s ease, transform .1s ease;
+  }
+  .run-btn:hover{ background: linear-gradient(180deg, rgba(110,231,216,0.24), rgba(110,231,216,0.1)); }
+  .run-btn:active{ transform: scale(0.99); }
+
+  .tag-block{
+    border: 1px solid var(--line);
+    padding: 16px 18px;
+    margin-bottom: 20px;
+    background: rgba(255,255,255,0.015);
+  }
+  .tag-row{
+    display:flex;
+    align-items:center;
+    gap: 16px;
+  }
+  .tag-row input[type="range"]{
+    flex:1;
+    accent-color: var(--violet);
+    height: 18px;
+    cursor:pointer;
+    background:transparent;
+  }
+  .tag-display{
+    width: 42px; height:42px;
+    flex-shrink:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border: 1px solid var(--line-strong);
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 19px;
+    font-weight:600;
+    color: var(--violet);
+    background: rgba(179,155,255,0.06);
+  }
+  .tag-hint{
+    margin-top:10px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--text-2);
+  }
+
+  .prog-label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing:0.12em;
+    color: var(--cyan);
+    margin-bottom: 10px;
+  }
+  .program-chips{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    min-height: 34px;
+    margin-bottom: 18px;
+    padding-bottom: 18px;
+    border-bottom: 1px dashed var(--line);
+  }
+  .chip{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-1);
+    border: 1px solid var(--line);
+    padding: 4px 9px;
+    white-space:nowrap;
+    background: rgba(255,255,255,0.02);
+  }
+  .chip.print{ color: var(--cyan); border-color: rgba(110,231,216,0.3); }
+  .chip.loop{ color: var(--amber); border-color: rgba(255,182,119,0.3); }
+  .placeholder-chip{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-2);
+    font-style: italic;
+  }
+
+  .console-wrap{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:8px;
+  }
+  .console{
+    background: #05060c;
+    border: 1px solid var(--line);
+    padding: 12px 14px;
+    height: 168px;
+    overflow-y:auto;
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 12px;
+    line-height:1.7;
+    color: var(--text-1);
+  }
+  .console .ln{ white-space:pre-wrap; }
+  .console .ln.print{ color: var(--cyan); }
+  .console .ln.set{ color: var(--violet); }
+  .console .ln.loop{ color: var(--amber); }
+  .console .ln.sys{ color: var(--text-2); }
+  .console::-webkit-scrollbar{ width:8px; }
+  .console::-webkit-scrollbar-thumb{ background: var(--line-strong); }
+
+  .reset-link{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    color: var(--text-2);
+    background:none;
+    border:none;
+    cursor:pointer;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    padding:0;
+  }
+  .reset-link:hover{ color: var(--text-1); }
+
+  .script-wrap{
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px dashed var(--line);
+  }
+  .file-btn{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    color: var(--amber);
+    border: 1px solid rgba(255,182,119,0.4);
+    padding: 4px 10px;
+    cursor:pointer;
+    background: rgba(255,182,119,0.05);
+  }
+  .file-btn:hover{ background: rgba(255,182,119,0.12); }
+  #scriptBox{
+    width:100%;
+    height: 168px;
+    margin-top:10px;
+    background: #05060c;
+    border: 1px solid var(--line);
+    color: var(--text-1);
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    line-height:1.65;
+    padding: 12px 14px;
+    resize: vertical;
+    white-space: pre;
+  }
+  #scriptBox:focus{ outline:none; border-color: var(--line-strong); }
+
+  footer{
+    margin-top: 22px;
+    color: var(--text-2);
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    text-align:center;
+    line-height:1.7;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ transition:none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="mark">
+        <svg viewBox="0 0 40 40" fill="none">
+          <circle cx="20" cy="20" r="15.5" stroke="#6ee7d8" stroke-width="1.2" opacity="0.9"/>
+          <rect x="11" y="11" width="14" height="14" stroke="#b39bff" stroke-width="1.2" opacity="0.85" transform="rotate(8 18 18)"/>
+        </svg>
+      </div>
+      <h1>sphere / cube canvas <span class="ext">.mix</span></h1>
+    </div>
+    <div class="tagline">Click a symbol in the cube to run it. The sphere is the live program canvas — it holds state, sequence, and output.</div>
+  </header>
+
+  <main>
+    <!-- CUBE: symbol palette -->
+    <section class="cube-panel">
+      <div class="panel-label"><span class="dot"></span>CUBE — SYMBOL PALETTE</div>
+      <div class="panel-sub">Geometric symbols, not all of them mapped yet. Each pair drives one underlying function.</div>
+
+      <div class="shape-grid">
+        <button class="shape-btn pos" data-action="print" title="print()">
+          <svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="11" stroke="#6ee7d8" stroke-width="1.6" fill="none"/></svg>
+          <span class="lbl">circle<br>print()</span>
+        </button>
+
+        <button class="shape-btn loop" data-action="loop" title="loop(n){ print() }">
+          <svg viewBox="0 0 32 32"><path d="M16 5 L27 26 L5 26 Z" stroke="#ffb677" stroke-width="1.6" fill="none" stroke-linejoin="round"/></svg>
+          <span class="lbl">triangle<br>loop(n)</span>
+        </button>
+
+        <button class="shape-btn pos" data-action="set" data-var="dimensions" data-delta="1" title="set(5dimensions, +1)">
+          <svg viewBox="0 0 32 32"><rect x="6" y="6" width="20" height="20" stroke="#6ee7d8" stroke-width="1.6" fill="none"/></svg>
+          <span class="lbl">square (outline)<br>5dimensions +1</span>
+        </button>
+
+        <button class="shape-btn neg" data-action="set" data-var="dimensions" data-delta="-1" title="set(5dimensions, -1)">
+          <svg viewBox="0 0 32 32"><rect x="6" y="6" width="20" height="20" fill="#ff7a7a" opacity="0.85"/></svg>
+          <span class="lbl">square (filled)<br>5dimensions −1</span>
+        </button>
+
+        <button class="shape-btn pos" data-action="set" data-var="m" data-delta="0.5" title="set(m, +0.5)">
+          <svg viewBox="0 0 32 32"><path d="M16 4 L27 12 L23 25 L9 25 L5 12 Z" stroke="#6ee7d8" stroke-width="1.6" fill="none" stroke-linejoin="round"/></svg>
+          <span class="lbl">pentagon (outline)<br>mass m +0.5</span>
+        </button>
+
+        <button class="shape-btn neg" data-action="set" data-var="m" data-delta="-0.5" title="set(m, -0.5)">
+          <svg viewBox="0 0 32 32"><path d="M16 4 L27 12 L23 25 L9 25 L5 12 Z" fill="#ff7a7a" opacity="0.85"/></svg>
+          <span class="lbl">pentagon (filled)<br>mass m −0.5</span>
+        </button>
+
+        <button class="shape-btn pos" data-action="set" data-var="c" data-delta="1" title="set(c, +1)">
+          <svg viewBox="0 0 32 32"><path d="M16 4 L26 10 L26 22 L16 28 L6 22 L6 10 Z" stroke="#6ee7d8" stroke-width="1.6" fill="none" stroke-linejoin="round"/></svg>
+          <span class="lbl">hexagon (outline)<br>c +1</span>
+        </button>
+
+        <button class="shape-btn neg" data-action="set" data-var="c" data-delta="-1" title="set(c, -1)">
+          <svg viewBox="0 0 32 32"><path d="M16 4 L26 10 L26 22 L16 28 L6 22 L6 10 Z" fill="#ff7a7a" opacity="0.85"/></svg>
+          <span class="lbl">hexagon (filled)<br>c −1</span>
+        </button>
+      </div>
+
+      <div class="sliders-block">
+        <div class="panel-label" style="margin-top:2px;"><span class="dot"></span>MOVEMENT SLIDERS</div>
+        <div class="panel-sub" style="margin-bottom:10px;">Drag any of these directly — they act on the same state as the shapes above.</div>
+
+        <div class="slider-row">
+          <label>5dimensions <span id="sldDimVal">1</span></label>
+          <input type="range" id="sldDim" min="-40" max="40" step="1" value="1">
+        </div>
+        <div class="slider-row">
+          <label>mass m <span id="sldMVal">1</span></label>
+          <input type="range" id="sldM" min="-10" max="10" step="0.5" value="1">
+        </div>
+        <div class="slider-row">
+          <label>speed c <span id="sldCVal">10</span></label>
+          <input type="range" id="sldC" min="-30" max="30" step="1" value="10">
+        </div>
+        <div class="slider-row">
+          <label>loop n <span id="sldNVal">3</span></label>
+          <input type="range" id="sldN" min="1" max="9" step="1" value="3">
+        </div>
+      </div>
+
+      <div class="fn-note">
+        <b>.mix</b> has three functions: <b>print()</b>, <b>loop(n)</b>, <b>set(var, Δ)</b>.<br>
+        Shapes and sliders both just call these — a slider drag calls <b>set()</b> with whatever Δ you dragged.
+      </div>
+    </section>
+
+    <!-- SPHERE: program canvas -->
+    <section class="sphere-panel">
+      <div class="state-row">
+        <div class="stat"><div class="k">5DIMENSIONS</div><div class="v" id="statDim">1</div></div>
+        <div class="stat"><div class="k">MASS m</div><div class="v" id="statM">1</div></div>
+        <div class="stat"><div class="k">SPEED c</div><div class="v" id="statC">10</div></div>
+        <div class="stat"><div class="k">SCALE k</div><div class="v" id="statK">+1</div></div>
+      </div>
+
+      <div class="energy-block">
+        <div class="eq">E = 5dimensions · m · c² · k  —  clamped to [−200000, 5000]</div>
+        <div class="big"><span id="eClamped">5000</span><span class="raw" id="eRaw">(raw 10000)</span></div>
+        <div class="clamp-badge" id="clampBadge">⚠ CLAMPED AT RANGE EDGE</div>
+        <div class="range-hint">
+          <span>−200000</span>
+          <div class="range-track"><div class="zero-tick" id="zeroTick"></div><div class="fill" id="rangeFill"></div></div>
+          <span>5000</span>
+        </div>
+      </div>
+
+      <button class="run-btn" id="runBtn">▶ RUN — print(E)</button>
+
+      <div class="tag-block">
+        <div class="panel-label" style="color:var(--violet); margin-bottom:10px;"><span class="dot" style="background:var(--violet);"></span>SCALE SLIDER k — one track, numbers then letters</div>
+        <div class="tag-row">
+          <input type="range" id="sldTag" min="0" max="35" step="1" value="0">
+          <div class="tag-display" id="tagDisplay">0</div>
+        </div>
+        <div class="tag-hint" id="tagHint">0–9 → k = +1…+10 (scales E up) · A–Z → k = −1…−26 (flips E negative) · feeds straight into E</div>
+      </div>
+
+      <div class="prog-label">PROGRAM SEQUENCE</div>
+      <div class="program-chips" id="chips">
+        <span class="placeholder-chip">click a shape in the cube to begin writing to this canvas…</span>
+      </div>
+
+      <div class="console-wrap">
+        <div class="prog-label" style="margin-bottom:0;">OUTPUT CONSOLE</div>
+        <button class="reset-link" id="resetBtn">reset canvas</button>
+      </div>
+      <div class="console" id="console">
+        <div class="ln sys">.mix canvas ready — 5dimensions=1, m=1, c=10</div>
+      </div>
+
+      <div class="script-wrap">
+        <div class="console-wrap">
+          <div class="prog-label" style="margin-bottom:0; color:var(--amber);">LOAD & RUN A .mix FILE</div>
+          <label class="file-btn">
+            choose file
+            <input type="file" id="fileInput" accept=".mix,.txt" hidden>
+          </label>
+        </div>
+        <textarea id="scriptBox" spellcheck="false"></textarea>
+        <button class="run-btn" id="runScriptBtn" style="margin-top:10px; margin-bottom:0; border-color:var(--amber); color:var(--amber); background:linear-gradient(180deg, rgba(255,182,119,0.16), rgba(255,182,119,0.06));">▶ RUN SCRIPT</button>
+      </div>
+    </section>
+  </main>
+
+  <footer>a small point-and-click canvas · sphere holds state and output, cube holds the symbols that act on it</footer>
+</div>
+
+<script>
+(function(){
+  const state = { dimensions: 1, m: 1, c: 10, k: 1 };
+  let loopN = 3;
+  const MAXP = 5000, MINP = -200000;
+  const RANGES = { dimensions: [-40, 40], m: [-10, 10], c: [-30, 30], k: [-26, 10] };
+  const ALPHANUM = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let tag = ALPHANUM[0];
+
+  const $ = id => document.getElementById(id);
+  const consoleEl = $('console');
+  const chipsEl = $('chips');
+  let chipsStarted = false;
+
+  function clampTo(v, lo, hi){ return Math.min(hi, Math.max(lo, v)); }
+
+  function fmt(n){
+    if (Number.isInteger(n)) return n.toString();
+    return n.toFixed(2).replace(/\.00$/,'');
+  }
+
+  function computeE(){
+    return state.dimensions * state.m * state.c * state.c * state.k;
+  }
+
+  function render(){
+    $('statDim').textContent = fmt(state.dimensions);
+    $('statM').textContent = fmt(state.m);
+    $('statC').textContent = fmt(state.c);
+    $('statK').textContent = (state.k > 0 ? '+' : '') + fmt(state.k);
+
+    // keep the movement sliders in sync whether state changed via a
+    // shape click or a slider drag
+    $('sldDim').value = state.dimensions;
+    $('sldDimVal').textContent = fmt(state.dimensions);
+    $('sldM').value = state.m;
+    $('sldMVal').textContent = fmt(state.m);
+    $('sldC').value = state.c;
+    $('sldCVal').textContent = fmt(state.c);
+    $('sldN').value = loopN;
+    $('sldNVal').textContent = loopN;
+
+    const raw = computeE();
+    const clamped = Math.min(MAXP, Math.max(MINP, raw));
+    $('eClamped').textContent = fmt(clamped);
+    $('eRaw').textContent = raw === clamped ? '' : '(raw ' + fmt(raw) + ')';
+
+    const badge = $('clampBadge');
+    badge.classList.toggle('show', raw !== clamped);
+
+    // signed sqrt scaling so the dot visibly moves across everyday click-sized
+    // values instead of sitting pinned near the small positive ceiling
+    const scale = v => Math.sign(v) * Math.sqrt(Math.abs(v));
+    const sMin = scale(MINP), sMax = scale(MAXP);
+    const pct = ((scale(clamped) - sMin) / (sMax - sMin)) * 100;
+    const zeroPct = ((scale(0) - sMin) / (sMax - sMin)) * 100;
+    $('rangeFill').style.left = Math.max(0, Math.min(100, pct)) + '%';
+    $('zeroTick').style.left = zeroPct + '%';
+
+  }
+
+  function log(text, cls){
+    const div = document.createElement('div');
+    div.className = 'ln ' + (cls || '');
+    div.textContent = text;
+    consoleEl.appendChild(div);
+    consoleEl.scrollTop = consoleEl.scrollHeight;
+  }
+
+  function addChip(text, cls){
+    if (!chipsStarted){
+      chipsEl.innerHTML = '';
+      chipsStarted = true;
+    }
+    const span = document.createElement('span');
+    span.className = 'chip ' + (cls || '');
+    span.textContent = text;
+    chipsEl.appendChild(span);
+    chipsEl.scrollTop = chipsEl.scrollHeight;
+  }
+
+  // ---- the three .mix functions ----
+  function mixSet(varName, delta){
+    const [lo, hi] = RANGES[varName];
+    state[varName] = clampTo(+(state[varName] + delta).toFixed(4), lo, hi);
+    addChip('set(' + (varName === 'dimensions' ? '5dimensions' : varName) + ', ' + (delta > 0 ? '+' : '') + delta + ')');
+    log('set(' + (varName === 'dimensions' ? '5dimensions' : varName) + ') → ' + fmt(state[varName]), 'set');
+    render();
+  }
+
+  function mixPrint(){
+    const raw = computeE();
+    const clamped = Math.min(MAXP, Math.max(MINP, raw));
+    addChip('print() [k=' + (state.k > 0 ? '+' : '') + fmt(state.k) + ']', 'print');
+    log('print() → E = ' + fmt(clamped) + (raw !== clamped ? '   (raw ' + fmt(raw) + ', clamped)' : ''), 'print');
+    render();
+  }
+
+  function mixLoop(n){
+    addChip('loop(' + n + '){ print() }', 'loop');
+    log('loop(' + n + ') {', 'loop');
+    for (let i = 0; i < n; i++){
+      const raw = computeE();
+      const clamped = Math.min(MAXP, Math.max(MINP, raw));
+      log('  print() → E = ' + fmt(clamped), 'print');
+    }
+    log('}', 'loop');
+    render();
+  }
+
+  // ---- wire up the cube ----
+  document.querySelectorAll('.shape-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const action = btn.dataset.action;
+      if (action === 'print') mixPrint();
+      else if (action === 'loop') mixLoop(loopN);
+      else if (action === 'set') mixSet(btn.dataset.var, parseFloat(btn.dataset.delta));
+    });
+  });
+
+  // ---- movement sliders: drag = set() with whatever delta you moved ----
+  function bindMoveSlider(id, varName){
+    const el = $(id);
+    let startVal = state[varName];
+    el.addEventListener('pointerdown', () => { startVal = state[varName]; });
+    el.addEventListener('input', () => {
+      const [lo, hi] = RANGES[varName];
+      state[varName] = clampTo(parseFloat(el.value), lo, hi);
+      render();
+    });
+    el.addEventListener('change', () => {
+      const delta = +(state[varName] - startVal).toFixed(4);
+      if (delta === 0) return;
+      const label = varName === 'dimensions' ? '5dimensions' : varName;
+      addChip('set(' + label + ', ' + (delta > 0 ? '+' : '') + delta + ')');
+      log('slider → set(' + label + ') → ' + fmt(state[varName]), 'set');
+    });
+  }
+  bindMoveSlider('sldDim', 'dimensions');
+  bindMoveSlider('sldM', 'm');
+  bindMoveSlider('sldC', 'c');
+
+  $('sldN').addEventListener('input', () => { loopN = parseInt($('sldN').value, 10); render(); });
+
+  // ---- the shared numbers/letters slider: one track, drives k directly in E ----
+  $('sldTag').addEventListener('input', () => {
+    const idx = parseInt($('sldTag').value, 10);
+    tag = ALPHANUM[idx];
+    state.k = idx <= 9 ? (idx + 1) : -(idx - 9);
+    $('tagDisplay').textContent = tag;
+    render();
+  });
+  $('sldTag').addEventListener('change', () => {
+    addChip('set(k, ' + (state.k > 0 ? '+' : '') + fmt(state.k) + ')');
+    log('slider → set(k) → ' + (state.k > 0 ? '+' : '') + fmt(state.k), 'set');
+  });
+
+  // ---- the run button: the main way to execute print() on the current state ----
+  $('runBtn').addEventListener('click', mixPrint);
+
+  $('resetBtn').addEventListener('click', () => {
+    state.dimensions = 1; state.m = 1; state.c = 10; state.k = 1; loopN = 3;
+    tag = ALPHANUM[0];
+    $('sldTag').value = 0;
+    $('tagDisplay').textContent = tag;
+    chipsStarted = false;
+    chipsEl.innerHTML = '<span class="placeholder-chip">click a shape or drag a slider to begin writing to this canvas…</span>';
+    consoleEl.innerHTML = '<div class="ln sys">.mix canvas reset — 5dimensions=1, m=1, c=10, k=+1</div>';
+    render();
+  });
+
+  // ---- a tiny interpreter for .mix source files: print / loop / set only ----
+  function parseSetLine(line){
+    const m = line.match(/set\(\s*([^,]+?)\s*,\s*([+-]?[\d.]+)\s*\)/);
+    if (!m) return null;
+    let varName = m[1].trim();
+    if (varName === '5dimensions') varName = 'dimensions';
+    return { varName, delta: parseFloat(m[2]) };
+  }
+
+  function runLine(line, indent){
+    const pre = indent ? '  ' : '';
+    if (line.startsWith('print(')){
+      const arg = line.match(/print\((.*)\)/)[1].trim();
+      if (arg.startsWith('"') || arg.startsWith("'")){
+        log(pre + arg.slice(1, -1), 'sys');
+        if (!indent) addChip('print("' + arg.slice(1, -1) + '")');
+      } else {
+        const raw = computeE();
+        const clamped = clampTo(raw, MINP, MAXP);
+        log(pre + 'print() → E = ' + fmt(clamped) + (raw !== clamped ? '  (clamped)' : ''), 'print');
+        if (!indent) addChip('print(E)', 'print');
+      }
+    } else if (line.startsWith('set(')){
+      const parsed = parseSetLine(line);
+      if (parsed && RANGES[parsed.varName]){
+        const [lo, hi] = RANGES[parsed.varName];
+        state[parsed.varName] = clampTo(+(state[parsed.varName] + parsed.delta).toFixed(4), lo, hi);
+        log(pre + 'set(' + line.match(/set\(\s*([^,]+)/)[1].trim() + ') → ' + fmt(state[parsed.varName]), 'set');
+        if (!indent) addChip('set(' + line.match(/set\(\s*([^,]+)/)[1].trim() + ', ' + (parsed.delta > 0 ? '+' : '') + parsed.delta + ')');
+      }
+    }
+  }
+
+  function runScript(source){
+    const lines = source.split('\n').map(l => l.replace(/#.*$/, '').trim()).filter(Boolean);
+    log('— running script —', 'sys');
+    let i = 0;
+    while (i < lines.length){
+      const line = lines[i];
+      const loopMatch = line.match(/^loop\((\d+)\)/);
+      if (loopMatch){
+        const n = parseInt(loopMatch[1], 10);
+        const body = [];
+        let j = i + 1;
+        while (j < lines.length && lines[j] !== '}'){ body.push(lines[j]); j++; }
+        addChip('loop(' + n + '){ ... }', 'loop');
+        log('loop(' + n + ') {', 'loop');
+        for (let k = 0; k < n; k++){ body.forEach(b => runLine(b, true)); }
+        log('}', 'loop');
+        i = j + 1;
+      } else {
+        runLine(line, false);
+        i++;
+      }
+    }
+    log('— done —', 'sys');
+    render();
+  }
+
+  const DEFAULT_SCRIPT = [
+    '# hello.mix',
+    'print("hello, sphere.")',
+    '',
+    'set(5dimensions, +1)',
+    'set(m, +0.5)',
+    'set(c, +1)',
+    'set(k, +3)',
+    '',
+    'print(E)',
+    '',
+    'loop(3) {',
+    '    print(E)',
+    '}',
+    '',
+    'set(k, -14)',
+    'print(E)'
+  ].join('\n');
+
+  $('scriptBox').value = DEFAULT_SCRIPT;
+
+  $('runScriptBtn').addEventListener('click', () => runScript($('scriptBox').value));
+
+  $('fileInput').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { $('scriptBox').value = reader.result; };
+    reader.readAsText(file);
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
